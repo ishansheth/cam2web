@@ -29,6 +29,8 @@
 
 #include "XInterfaces.hpp"
 
+static const std::string DC_MOTOR_COMMAND_PIPE_PATH = "/tmp/DcMotorContolPipe";
+
 namespace Private
 {
     class XWebServerData;
@@ -142,6 +144,21 @@ public:
 
 private:
     const XEmbeddedContent* mContent;
+};
+
+class XControlDeviceHandler : public IWebRequestHandler
+{
+    const XEmbeddedContent* mContent;
+    int fd_command_pipe;
+    std::string command_buf;
+    char decoded_url[64];
+    std::map<std::string,std::string> keyMap;
+
+    public:
+    XControlDeviceHandler( const std::string& uri, const XEmbeddedContent* content);
+    ~XControlDeviceHandler();
+
+    void HandleHttpRequest( const IWebRequest& request, IWebResponse& response );
 };
 
 /* ================================================================= */

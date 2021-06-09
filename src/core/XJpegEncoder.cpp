@@ -55,6 +55,8 @@ namespace Private
         struct jpeg_compress_struct cinfo;
         struct jpeg_error_mgr       jerr;
 
+        struct jpeg_decompress_struct dcinfo;
+
     public:
         XJpegEncoderData( uint16_t quality, bool fasterCompression) :
             Quality( quality ), FasterCompression( fasterCompression  )
@@ -66,18 +68,26 @@ namespace Private
 
             // allocate and initialize JPEG compression object
             cinfo.err           = jpeg_std_error( &jerr );
+            dcinfo.err          = jpeg_std_error(&jerr);
+
             jerr.error_exit     = my_error_exit;
             jerr.output_message = my_output_message;
 
             jpeg_create_compress( &cinfo );
+
+            jpeg_create_decompress(&dcinfo);
         }
 
         ~XJpegEncoderData( )
         {
             jpeg_destroy_compress( &cinfo );
+            jpeg_destroy_decompress(&dcinfo);
         }
 
         XError EncodeToMemory( const shared_ptr<const XImage>& image, uint8_t** buffer, uint32_t* bufferSize );
+
+        XError DecodeToMemory( const shared_ptr<const XImage>& image, cv::Mat& );
+
     };
 }
 
@@ -120,8 +130,63 @@ XError XJpegEncoder::EncodeToMemory( const shared_ptr<const XImage>& image, uint
     return mData->EncodeToMemory( image, buffer, bufferSize );
 }
 
+XError XJpegEncoder::DecodeToMemory(const std::shared_ptr<const XImage>& image, cv::Mat& decMat )
+{
+    return mData->DecodeToMemory( image, decMat);
+}
+
+
 namespace Private
 {
+
+XError XJpegEncoderData::DecodeToMemory( const shared_ptr<const XImage>& image, cv::Mat& decodedMat)
+{
+    if ( ( !image ) || ( image->Data( ) == nullptr ) )
+    {
+        return XError::NullPointer;;
+    }
+    else if ( ( image->Format( ) != XPixelFormat::JPEG ) )
+    {
+        return XError::UnsupportedPixelFormat;
+    }
+    else
+    {
+        try
+        {
+            /* code */
+            jpeg_mem_src(&dcinfo, image->Data(), image->Height()*image->Width());
+            
+            switch (jpeg_read_header(&dcinfo, TRUE)) {
+                case JPEG_SUSPENDED:
+                case JPEG_HEADER_TABLES_ONLY:
+                    return XError::DamagedJPEGImage;
+                case JPEG_HEADER_OK:
+                break;
+            }
+
+            dcinfo.out_color_space = JCS_EXT_BGR;
+            jpeg_start_decompress(&dcinfo);
+
+            decodedMat = cv::Mat(
+                            cv::Size(dcinfo.output_width, dcinfo.output_height),
+                            CV_8UC3);
+
+            while (dcinfo.output_scanline < dcinfo.output_height) 
+            {
+                JSAMPLE *row = decodedMat.ptr(dcinfo.output_scanline);
+                jpeg_read_scanlines(&dcinfo, &row, 1);
+            }            
+            jpeg_finish_decompress(&dcinfo);
+        }
+        catch(const std::exception& e)
+        {
+            std::cerr << e.what() << '\n';
+            return XError::FailedImageEncoding;
+        }
+    }
+
+    return XError::Success;
+}
 
 XError XJpegEncoderData::EncodeToMemory( const shared_ptr<const XImage>& image, uint8_t** buffer, uint32_t* bufferSize )
 {

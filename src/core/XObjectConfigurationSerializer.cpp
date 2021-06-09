@@ -79,7 +79,7 @@ XError XObjectConfigurationSerializer::SaveConfiguration( ) const
         }
         else
         {
-            map<string, string> properties = ObjectToConfigure->GetAllProperties( );
+            map<string,string> properties = ObjectToConfigure->GetAllProperties( );
             bool                first = true;
 
             // write a simple file, where property name and value go separate lines

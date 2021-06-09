@@ -43,7 +43,8 @@ public:
         ReadOnlyProperty,           // Specified property is read only
         UnsupportedPixelFormat,     // Pixel format (of an image) is not supported
         ImageParametersMismatch,    // Parameters of images (width/height/format) don't match
-        FailedImageEncoding         // Failed image encoding
+        FailedImageEncoding,        // Failed image encoding
+        DamagedJPEGImage
     };
 
 public:

@@ -68,7 +68,7 @@ function showSettings( )
             if ( config[properties[i][0]] )
             {
                 var propertyHtml = "<div id=\"div_" + properties[i][0] + "\">";
-          
+                
                 if ( properties[i][1].type == "int" )
                 {
                     propertyHtml += "<label for=\"" + properties[i][0] + "\">" + properties[i][1].name + ":</label>";
@@ -98,12 +98,12 @@ function showSettings( )
                     
                     propertyHtml += "</select>";
                 }
-                
                 propertyHtml   += "</div>";
                 propertiesHtml += propertyHtml;
             }
         }
-        
+        propertiesHtml += "<label>Car Speed:</label><input type=\"range\" min=\"0\" max=\"255\" onchange=\"handleCarSpeedChange(this)\"/>";
+
         $( "#properties_list" ).html( propertiesHtml ).trigger( 'create' );
         $( "#properties" ).show( );
     }

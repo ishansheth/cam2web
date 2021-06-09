@@ -26,6 +26,7 @@
 #include <linux/limits.h>
 #include <map>
 
+
 #include "XV4LCamera.hpp"
 #include "XV4LCameraConfig.hpp"
 #include "XWebServer.hpp"
@@ -37,8 +38,12 @@
 // Release build embeds web resources into executable
 #ifdef NDEBUG
     #include "index.html.h"
+    #include "login.html.h"
     #include "styles.css.h"
     #include "cam2web.png.h"
+    #include "up.png.h"
+    #include "record_start.png.h"
+    #include "record_stop.png.h"
     #include "cam2web_white.png.h"
     #include "camera.js.h"
     #include "cameraproperties.html.h"
@@ -49,6 +54,7 @@
 #endif
 
 using namespace std;
+
 
 // Information provided on version request
 #define STR_INFO_PRODUCT        "cam2web"
@@ -111,12 +117,12 @@ void SetDefaultSettings( )
     Settings.FrameHeight  = 480;
     Settings.FrameRate    = 30;
     Settings.WebPort      = 8000;
-
     Settings.HtRealm = "cam2web";
     Settings.HtDigestFileName.clear( );
 
     Settings.ViewersGroup = UserGroup::Anyone;
     Settings.ConfigGroup  = UserGroup::Anyone;
+
 
     struct passwd* pwd = getpwuid( getuid( ) );
     if ( pwd )
@@ -417,8 +423,19 @@ int main( int argc, char* argv[] )
            AddHandler( make_shared<XObjectConfigurationRequestHandler>( "/camera/config", xcameraConfig ), configGroup ).
            AddHandler( make_shared<XObjectInformationRequestHandler>( "/camera/properties", make_shared<XV4LCameraPropsInfo>( xcamera ) ), configGroup ).
            AddHandler( make_shared<XObjectInformationRequestHandler>( "/camera/info", make_shared<XObjectInformationMap>( cameraInfo ) ), viewersGroup ).
+           AddHandler( make_shared<XControlDeviceHandler>("/up_arrow",&web_index_html), viewersGroup).
+           AddHandler( make_shared<XControlDeviceHandler>("/down_arrow",&web_index_html), viewersGroup).
+           AddHandler( make_shared<XControlDeviceHandler>("/left_arrow",&web_index_html), viewersGroup).
+           AddHandler( make_shared<XControlDeviceHandler>("/right_arrow",&web_index_html), viewersGroup).
+           AddHandler( make_shared<XControlDeviceHandler>("/login_action_page",&web_index_html), viewersGroup).
+//           AddHandler( make_shared<XControlDeviceHandler>("/record_start",&web_index_html), viewersGroup).
+//           AddHandler( make_shared<XControlDeviceHandler>("/record_stop",&web_index_html), viewersGroup).
+           AddHandler( make_shared<XControlDeviceHandler>("/car_speed",&web_index_html), viewersGroup).
+           AddHandler( video2web.CreateMjpegHandler("/record_start",10), viewersGroup ).
+           AddHandler( video2web.CreateMjpegHandler("/record_stop",10), viewersGroup ).
            AddHandler( video2web.CreateJpegHandler( "/camera/jpeg" ), viewersGroup ).
            AddHandler( video2web.CreateMjpegHandler( "/camera/mjpeg", Settings.FrameRate ), viewersGroup );
+
 
     // use custom or embedded web content
     if ( !Settings.CustomWebContent.empty( ) )
@@ -429,10 +446,13 @@ int main( int argc, char* argv[] )
     {
     #ifdef NDEBUG
         // web content is embedded in release builds to get single executable
-        server.AddHandler( make_shared<XEmbeddedContentHandler>( "/", &web_index_html ), viewersGroup ).
+        server.AddHandler( make_shared<XEmbeddedContentHandler>( "/", &web_login_html ), viewersGroup ).
                AddHandler( make_shared<XEmbeddedContentHandler>( "index.html", &web_index_html ), viewersGroup ).
                AddHandler( make_shared<XEmbeddedContentHandler>( "styles.css", &web_styles_css ), viewersGroup ).
                AddHandler( make_shared<XEmbeddedContentHandler>( "cam2web.png", &web_cam2web_png ) ).
+               AddHandler( make_shared<XEmbeddedContentHandler>( "up.png", &web_up_png ) ).               
+               AddHandler( make_shared<XEmbeddedContentHandler>( "record_start.png", &web_record_start_png ) ).               
+               AddHandler( make_shared<XEmbeddedContentHandler>( "record_stop.png", &web_record_stop_png ) ).                              
                AddHandler( make_shared<XEmbeddedContentHandler>( "cam2web_white.png", &web_cam2web_white_png ) ).
                AddHandler( make_shared<XEmbeddedContentHandler>( "camera.js", &web_camera_js ), viewersGroup ).
                AddHandler( make_shared<XEmbeddedContentHandler>( "cameraproperties.js", &web_cameraproperties_js ), viewersGroup ).

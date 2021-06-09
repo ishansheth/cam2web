@@ -31,6 +31,9 @@
 
 #include "XVideoSourceToWeb.hpp"
 #include "XJpegEncoder.hpp"
+#include <iostream>
+#include "opencv2/opencv.hpp"
+#include <atomic>
 
 using namespace std;
 using namespace std::chrono;
@@ -44,9 +47,31 @@ namespace Private
     {
     private:
         XVideoSourceToWebData* Owner;
-
+        std::string            outDir;
+        cv::VideoWriter        oWriter;
+        std::atomic<bool>      isRecording;
+        cv::Mat                currentFrame;
     public:
-        VideoListener( XVideoSourceToWebData* owner ) : Owner( owner ) { }
+        VideoListener( XVideoSourceToWebData* owner , std::string videoDirectory) : 
+            Owner( owner ),
+            outDir(videoDirectory),
+            isRecording(false)
+        { }
+
+        void startRecording() 
+        {            
+            if(isRecording) 
+                return; 
+            else 
+                isRecording = true; 
+        }
+        void stopRecording() 
+        { 
+            if(isRecording) 
+                isRecording = false; 
+
+            oWriter.release();
+        }
 
         void OnNewImage( const shared_ptr<const XImage>& image );
         void OnError( const string& errorMessage, bool fatal );
@@ -73,7 +98,6 @@ namespace Private
     private:
         XVideoSourceToWebData* Owner;
         uint32_t               FrameInterval;
-
     public:
         MjpegRequestHandler( const string& uri, uint32_t frameRate, XVideoSourceToWebData* owner ) :
             IWebRequestHandler( uri, false ), Owner( owner ), FrameInterval( 1000 / frameRate )
@@ -104,7 +128,8 @@ namespace Private
     public:
         XVideoSourceToWebData( uint16_t jpegQuality ) :
             NewImageAvailable( false ), VideoSourceError( false ), InternalError( XError::Success ),
-            JpegBuffer( nullptr ), JpegBufferSize( 0 ), JpegSize( 0 ), VideoSourceListener( this ),
+            JpegBuffer( nullptr ), JpegBufferSize( 0 ), JpegSize( 0 ), 
+            VideoSourceListener( this,"/home/ishan/recorded_file/" ),
             CameraImage( ), VideoSourceErrorMessage( ), ImageGuard( ), BufferGuard( ),
             JpegEncoder( jpegQuality, true )
         {
@@ -178,6 +203,20 @@ void VideoListener::OnNewImage( const shared_ptr<const XImage>& image )
 
     Owner->InternalError = image->CopyDataOrClone( Owner->CameraImage );
     
+    if(isRecording)
+    {   
+        if(Owner->JpegEncoder.DecodeToMemory(image,currentFrame) == XError::Success)
+        {
+            if(oWriter.isOpened())
+                oWriter.write(currentFrame);
+            else
+            {
+                cv::Size framesize(static_cast<int>(currentFrame.cols),static_cast<int>(currentFrame.rows));
+                oWriter.open(outDir+"recording.avi",CV_FOURCC('M','J','P','G'),30,framesize);
+            }
+        }
+    }
+
     if ( Owner->InternalError == XError::Success )
     {
         Owner->NewImageAvailable = true;
@@ -231,9 +270,11 @@ void JpegRequestHandler::HandleHttpRequest( const IWebRequest& /* request */, IW
 }
 
 // Handle MJPEG request - continuously provide camera images as MJPEG stream
-void MjpegRequestHandler::HandleHttpRequest( const IWebRequest& /* request */, IWebResponse& response )
+void MjpegRequestHandler::HandleHttpRequest( const IWebRequest&  request , IWebResponse& response )
 {
     uint32_t handlingTime = 0;
+
+    std::cout<<Uri()<<std::endl;
 
     if ( !Owner->IsError( ) )
     {
@@ -272,12 +313,22 @@ void MjpegRequestHandler::HandleHttpRequest( const IWebRequest& /* request */, I
                              "\r\n",  Owner->JpegSize );
     
             response.Send( Owner->JpegBuffer, Owner->JpegSize );
-    
+
             // get final request handling time
             handlingTime += static_cast<uint32_t>( duration_cast<std::chrono::milliseconds>( steady_clock::now( ) - startTime ).count( ) );
     
             // set time to provide next images
             response.SetTimer( FrameInterval );
+            if(Uri() == "/record_start")
+            {
+                std::cout<<"starting recording"<<std::endl;
+                Owner->VideoSourceListener.startRecording();
+            }
+            else if(Uri() == "/record_stop")
+            {
+                std::cout<<"stopping recording"<<std::endl;
+                Owner->VideoSourceListener.stopRecording();
+            }
         }
     }
 }
@@ -387,9 +438,17 @@ void XVideoSourceToWebData::EncodeCameraImage( )
             }
             else
             {
+                uint8_t* oldJpegBuffer = JpegBuffer;
+                std::cout<<"Encoding image to JPEG"<<std::endl;
                 // encode image as JPEG (buffer is re-allocated if too small by encoder)
                 JpegSize      = JpegBufferSize;
                 InternalError = JpegEncoder.EncodeToMemory( CameraImage, &JpegBuffer, &JpegSize );
+
+                if ( JpegSize > JpegBufferSize )
+                {
+                    JpegBufferSize = JpegSize;
+                    free( oldJpegBuffer );
+                }
             }
         }
 

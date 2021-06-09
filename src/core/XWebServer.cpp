@@ -20,11 +20,12 @@
 
 #include "XWebServer.hpp"
 #include "XManualResetEvent.hpp"
+#include "XSimpleJsonParser.hpp"
 
 #include <map>
 #include <list>
 #include <mutex>
-
+#include <iostream>
 #include <mongoose.h>
 
 #ifdef WIN32
@@ -46,6 +47,7 @@ namespace Private
         friend class XWebServerData;
 
     private:
+      // IS:http message is define in mangoose.h
         struct http_message* mMessage;
 
     private:
@@ -96,6 +98,8 @@ namespace Private
 
             return ret;
         }
+
+      //IS:extracts the header with value using mangoose APIs
         map<string, string> Headers( ) const
         {
             map<string, string> headers;
@@ -120,7 +124,8 @@ namespace Private
         friend class XWebServerData;
 
     private:
-        struct mg_connection* mConnection;
+      //IS: struct from mangoose
+      struct mg_connection* mConnection;
         IWebRequestHandler*   mHandler;
 
     private:
@@ -246,7 +251,10 @@ namespace Private
         bool                      WasAccessed;
 
     private:
+
+      // mangoose event manager
         struct mg_mgr             EventManager;
+      // mangoose structure
         struct mg_serve_http_opts ServerOptions;
 
         char*                     ActiveDocumentRoot;
@@ -346,6 +354,52 @@ void XEmbeddedContentHandler::HandleHttpRequest( const IWebRequest& /* request *
                      "Content-Length: %u\r\n"
                      "\r\n", mContent->Type, mContent->Length );
     response.Send( mContent->Body, mContent->Length );
+}
+
+XControlDeviceHandler::XControlDeviceHandler( const std::string& uri, const XEmbeddedContent* content):
+IWebRequestHandler( uri,false), mContent( content )
+{
+    fd_command_pipe = open(DC_MOTOR_COMMAND_PIPE_PATH.c_str(),O_RDWR);
+}
+
+XControlDeviceHandler::~XControlDeviceHandler()
+{    
+    close(fd_command_pipe);
+}
+
+void XControlDeviceHandler::HandleHttpRequest( const IWebRequest& request, IWebResponse& response )
+{
+    std::cout<<"URI:"<<request.Uri()<<std::endl;  
+    std::cout<<"Body:"<<request.Body()<<std::endl;
+    
+    if(mg_url_decode(request.Query().c_str(), request.Query().size(), decoded_url, sizeof(decoded_url),1))
+    {
+
+        std::cout<<"Decoded query:"<<decoded_url<<std::endl;
+
+        std::string decoded_url_str(decoded_url);
+        if(XSimpleJsonParser(decoded_url_str,keyMap))
+        {
+            for(auto& element: keyMap)
+                std::cout<<element.first<<element.second<<std::endl;                
+        }
+        else
+        {
+            std::cout<<"could not parse query string as JSON"<<std::endl;
+        }
+    }
+
+    command_buf = request.Uri().c_str();
+
+    if(write(fd_command_pipe,command_buf.c_str(),command_buf.size()) < 0)
+    {
+        std::cout<<"Could not send the command to DC control server"<<std::endl;
+    }
+    else
+    {
+        std::cout<<"Sent:"<<request.Uri()<<std::endl;
+    }
+
 }
 
 /* ================================================================= */
@@ -490,6 +544,7 @@ string XWebServer::CalculateDigestAuthHa1( const string& user, const string& dom
 {
     char ha1[33];
 
+    //IS: mangoose API
     cs_md5( ha1, user.c_str( ), user.length( ), ":", static_cast<size_t>( 1 ),
                  domain.c_str( ), domain.length( ), ":", static_cast<size_t>( 1 ),
                  pass.c_str( ), pass.length( ), nullptr );
@@ -531,6 +586,7 @@ bool XWebServerData::Start( )
         ActiveAuthMethod     = AuthMethod;
     }
 
+    //IS:mangoose api
     mg_mgr_init( &EventManager, this );
 
     NeedToStop.Reset( );
@@ -983,6 +1039,7 @@ void XWebServerData::eventHandler( struct mg_connection* connection, int event, 
 
     if ( event == MG_EV_HTTP_REQUEST )
     {
+      // IS:mongoose structure http_message
         struct http_message* message = static_cast<struct http_message*>( param );
         MangooseWebRequest   request( message );
         MangooseWebResponse  response( connection );
@@ -1008,6 +1065,7 @@ void XWebServerData::eventHandler( struct mg_connection* connection, int event, 
             {
                 response.SetHandler( handlerData->Handler.get( ) );
                 // handle request with the found handler
+                std::cout<<"handling request for URI:"<<uri<<std::endl;
                 handlerData->Handler->HandleHttpRequest( request, response );
 
                 handlerData->WasAccessed    = true;

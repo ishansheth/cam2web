@@ -48,6 +48,9 @@ public:
     // Create web request handler to provide camera images as MJPEG stream
     std::shared_ptr<IWebRequestHandler> CreateMjpegHandler( const std::string& uri, uint32_t frameRate ) const;
 
+    // Create video record request handler
+    std::shared_ptr<IWebRequestHandler> CreateRecorderHandler( const std::string& uri, uint32_t frameRate ) const;
+
     // Get/Set JPEG quality (valid only if camera provides uncompressed images)
     uint16_t JpegQuality( ) const;
     void SetJpegQuality( uint16_t quality );

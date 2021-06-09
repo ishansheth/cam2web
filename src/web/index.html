@@ -5,24 +5,180 @@
     <link rel="stylesheet" type="text/css" href="styles.css" />
     <link rel="stylesheet" type="text/css" href="jquery.mobile.css" />
     <link rel="icon" type="image/png" href="cam2web.png" />
+    <script src="jquery.js"></script>
     <script src="camera.js"></script>
     <script src="cameraproperties.js"></script>
-    <script src="jquery.js"></script>
+    <script>
+        var showingSettings = false;
+
+        function showSettings( )
+        {
+            if ( !showingSettings )
+            {
+                var timeNow = new Date( ).getTime( );
+
+                $.ajax({
+                    url: '/cameraproperties.html?=' + timeNow,
+
+                    success: function(data)
+                    {
+                        $( "#cameraproperties" ).html( data ).trigger( 'create' );
+                        $( "#cameraproperties" ).show( );
+
+                        $( "#settingsButton" ).addClass( 'ui-btn-active' );
+                        showingSettings = true;
+                    }
+                });
+            }
+            else
+            {
+                $( "#cameraproperties" ).hide( );
+                $( "#settingsButton" ).removeClass( 'ui-btn-active' );
+                showingSettings = false;
+            }
+
+            $( "#settingsButton" ).blur( );
+
+            return false;
+        }
+
+
+        function submit_up_arrow()
+        {
+            $.ajax( {
+                type        : "GET",
+                url         : "/up_arrow",
+                contentType : "application/json; charset=utf-8",
+                async       : true,        
+            });
+            
+        }
+        function submit_left_arrow()
+        {
+            $.ajax( {
+                type        : "GET",
+                url         : "/left_arrow",
+                contentType : "application/json; charset=utf-8",
+                async       : true,        
+            });
+            
+        }
+        function submit_down_arrow()
+        {
+            $.ajax( {
+                type        : "GET",
+                url         : "/down_arrow",
+                contentType : "application/json; charset=utf-8",
+                async       : true,        
+            });
+            
+        }
+        function submit_right_arrow()
+        {
+            $.ajax( {
+                type        : "GET",
+                url         : "/right_arrow",
+                contentType : "application/json; charset=utf-8",
+                async       : true,        
+            });
+            
+        }
+        function submit_record_start()
+        {
+            $.ajax( {
+                type        : "GET",
+                url         : "/record_start",
+                contentType : "application/json; charset=utf-8",
+                async       : true,        
+            });
+        }
+        function submit_record_stop()
+        {
+            $.ajax( {
+                type        : "GET",
+                url         : "/record_stop",
+                contentType : "application/json; charset=utf-8",
+                async       : true,        
+            });
+        }
+
+        function handleCarSpeedChange( range )
+        {
+            $.ajax( {
+                type        : "GET",
+                url         : "/car_speed",
+                contentType : "application/json; charset=utf-8",
+                async       : true,        
+                data        : {"value":(range.value)}
+            });
+        }
+
+    </script>
+
     <script>
     $(document).bind('mobileinit', function () {
         $.mobile.activeBtnClass = 'unused';
     });
     </script>
     <script src="jquery.mobile.js"></script>
+    <style>
+        .arrow_up_location {
+            position: relative;
+            left: 70px;
+            top: 20px;
+            border: 3px solid ;
+        }
+        .arrow_right_location {
+            position: relative;
+            left: 65px;
+            top: 66px;
+            border: 3px solid ;
+        }
+        .arrow_down_location {
+            position: relative;
+            right: 29px;
+            top: 109px;
+            border: 3px solid ;
+        }
+        .arrow_left_location {
+            position: relative;
+            right: 126px;
+            top: 66px;
+            border: 3px solid ;
+        }
+        .record_start_location {
+            position: relative;
+            right: 170px;
+            top: 200px;
+            border: 3px solid ;
+        }
+        .record_stop_location {
+            position: relative;
+            right: 170px;
+            top: 200px;
+            border: 3px solid ;
+        }
+        .carspeed_slider {
+            position: relative;
+            left: 170px;
+            top: 25px;
+        }
+        .camera_property_panel_location {
+            position: relative;
+            left: 220px;
+            top: 10px;
+            border: 3px solid ;
+        }
+    </style>
 </head>
-<body>
 
+<body onload="showSettings()">
+    
 <div data-role="page">
-
 <div data-role="header" data-theme="b">
     <img width="32" height="32" src="cam2web_white.png" style="float:left;display:inline;margin-left:10px;margin-top:5px"/>
     <h1 id="title">Remote Camera</h1>
-    <a href="#" id="settingsButton" data-icon="gear" class="ui-btn-right">Settings</a>
+<!--    <a href="#" id="settingsButton" data-icon="gear" class="ui-btn-right">Settings</a>-->
 </div>
 
 <div data-role="content">
@@ -31,13 +187,23 @@
     <img id="camera" width="640" height="480">
 </div>
 
-<div id="cameraproperties" style="display: none;">
+    
+<input type="image" class="arrow_up_location" src="up.png" width="40" height="40" onclick="submit_up_arrow()" />
+<input type="image" class="arrow_right_location" src="up.png" width="40" height="40" onclick="submit_right_arrow()"style="transform: rotate(90deg);"/>
+<input type="image" class="arrow_down_location" src="up.png" width="40" height="40" onclick="submit_down_arrow()" style="transform: rotate(180deg);"/>
+<input type="image" class="arrow_left_location" src="up.png" width="40" height="40" onclick="submit_left_arrow()" style="transform: rotate(270deg);"/>
+<input type="image" class="record_start_location" src="record_start.png" width="40" height="40" onclick="submit_record_start()"/>
+<input type="image" class="record_stop_location" src="record_stop.png" width="40" height="40" onclick="submit_record_stop()"/>
+
+
+<div id="cameraproperties" class="camera_property_panel_location">
 </div>
 
 </div>
+
 
 <div data-role="footer" data-theme="b">
-    <div id="copyright"><a href="https://github.com/cvsandbox/cam2web" target="_blank">cam2web - camera web streamer</a><span id="version"></span> :: Copyright © 2017-2019 cvsandbox</div>
+    <div id="copyright"><a href="https://github.com/cvsandbox/cam2web" target="_blank">cam2web - camera web streamer</a><span id="version"></span> :: Copyright © 2017-2020 cvsandbox</div>
 </div>
 
 </div>
@@ -55,10 +221,11 @@ function getCameraInfo( )
         {
             if ( data.status == "OK" )
             {
-                var title       = "";
-                var config      = data.config;
-                var cameraWidth = parseInt( config.width );
-
+                var title        = "";
+                var config       = data.config;
+                var cameraWidth  = parseInt( config.width );
+                var cameraHeight = parseInt( config.height );
+                
                 if ( ( config.title ) && ( config.title.length != 0 ) )
                 {
                     title = config.title;
@@ -67,9 +234,18 @@ function getCameraInfo( )
                 {
                     title = config.device;
                 }
+                
+                // make sure image element is not too big
+                if ( cameraWidth > 1024 )
+                {
+                    var ratio = cameraWidth / cameraHeight;
+                    
+                    cameraWidth  = 1024;
+                    cameraHeight = Math.floor( cameraWidth / ratio ); 
+                }
 
-                $('#camera').width( config.width );
-                $('#camera').height( config.height );
+                $('#camera').width( cameraWidth );
+                $('#camera').height( cameraHeight );
 
                 $('#cameracontainer').width( cameraWidth + 20 );
                 $('#cameraproperties').css( { 'margin-left' : cameraWidth + 40 } );
@@ -102,41 +278,10 @@ function getVersionInfo( )
     } );
 }
 
-var showingSettings = false;
 
 // Load camera settings controls
-function showSettings( )
-{
-    if ( !showingSettings )
-    {
-        var timeNow = new Date( ).getTime( );
 
-        $.ajax({
-            url: '/cameraproperties.html?=' + timeNow,
-
-            success: function(data)
-            {
-                $( "#cameraproperties" ).html( data ).trigger( 'create' );
-                $( "#cameraproperties" ).show( );
-
-                $( "#settingsButton" ).addClass( 'ui-btn-active' );
-                showingSettings = true;
-            }
-        });
-    }
-    else
-    {
-        $( "#cameraproperties" ).hide( );
-        $( "#settingsButton" ).removeClass( 'ui-btn-active' );
-        showingSettings = false;
-    }
-
-    $( "#settingsButton" ).blur( );
-
-    return false;
-}
-
-document.getElementById( 'settingsButton' ).onclick = showSettings;
+//document.getElementById( 'settingsButton' ).onclick = showSettings;
 
 // get camera information like name, width, height
 getCameraInfo( );

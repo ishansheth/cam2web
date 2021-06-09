@@ -22,6 +22,7 @@
 #define XJPEG_ENCODER_HPP
 
 #include <stdint.h>
+#include "opencv2/opencv.hpp"
 
 #include "XInterfaces.hpp"
 #include "XImage.hpp"
@@ -53,6 +54,8 @@ public:
        buffer is too small, it will be re-allocated (realloc).
     */
     XError EncodeToMemory( const std::shared_ptr<const XImage>& image, uint8_t** buffer, uint32_t* bufferSize );
+
+    XError DecodeToMemory(const std::shared_ptr<const XImage>& image,cv::Mat& );
 
 private:
     Private::XJpegEncoderData* mData;

@@ -1,3 +1,4 @@
+
 /*
     cam2web - streaming camera to web
 
@@ -29,6 +30,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <linux/videodev2.h>
+#include <iostream>
 
 #include "XV4LCamera.hpp"
 #include "XManualResetEvent.hpp"
