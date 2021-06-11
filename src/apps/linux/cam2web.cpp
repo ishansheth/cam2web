@@ -427,7 +427,7 @@ int main( int argc, char* argv[] )
            AddHandler( make_shared<XControlDeviceHandler>("/down_arrow",&web_index_html), viewersGroup).
            AddHandler( make_shared<XControlDeviceHandler>("/left_arrow",&web_index_html), viewersGroup).
            AddHandler( make_shared<XControlDeviceHandler>("/right_arrow",&web_index_html), viewersGroup).
-           AddHandler( make_shared<XControlDeviceHandler>("/login_action_page",&web_index_html), viewersGroup).
+           AddHandler( make_shared<XAccessHandler>("/login_action_page",&web_index_html), viewersGroup).
 //           AddHandler( make_shared<XControlDeviceHandler>("/record_start",&web_index_html), viewersGroup).
 //           AddHandler( make_shared<XControlDeviceHandler>("/record_stop",&web_index_html), viewersGroup).
            AddHandler( make_shared<XControlDeviceHandler>("/car_speed",&web_index_html), viewersGroup).

@@ -161,6 +161,19 @@ class XControlDeviceHandler : public IWebRequestHandler
     void HandleHttpRequest( const IWebRequest& request, IWebResponse& response );
 };
 
+class XAccessHandler : public IWebRequestHandler
+{
+    const XEmbeddedContent* successContent;
+    
+    public:
+    XAccessHandler( const std::string& uri, const XEmbeddedContent* );
+    ~XAccessHandler();
+
+    void HandleHttpRequest( const IWebRequest& request, IWebResponse& response );
+
+};
+
+
 /* ================================================================= */
 /* Web server class                                                  */
 /* ================================================================= */

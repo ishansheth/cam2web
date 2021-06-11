@@ -21,7 +21,7 @@
 #include "XWebServer.hpp"
 #include "XManualResetEvent.hpp"
 #include "XSimpleJsonParser.hpp"
-
+#include "XStringTools.hpp"
 #include <map>
 #include <list>
 #include <mutex>
@@ -356,6 +356,10 @@ void XEmbeddedContentHandler::HandleHttpRequest( const IWebRequest& /* request *
     response.Send( mContent->Body, mContent->Length );
 }
 
+/* ================================================================= */
+/* Implementation of the XControlDeviceHandler                     */
+/* ================================================================= */
+
 XControlDeviceHandler::XControlDeviceHandler( const std::string& uri, const XEmbeddedContent* content):
 IWebRequestHandler( uri,false), mContent( content )
 {
@@ -369,12 +373,9 @@ XControlDeviceHandler::~XControlDeviceHandler()
 
 void XControlDeviceHandler::HandleHttpRequest( const IWebRequest& request, IWebResponse& response )
 {
-    std::cout<<"URI:"<<request.Uri()<<std::endl;  
-    std::cout<<"Body:"<<request.Body()<<std::endl;
-    
+    std::cout<<"URI:"<<request.Uri()<<std::endl;      
     if(mg_url_decode(request.Query().c_str(), request.Query().size(), decoded_url, sizeof(decoded_url),1))
     {
-
         std::cout<<"Decoded query:"<<decoded_url<<std::endl;
 
         std::string decoded_url_str(decoded_url);
@@ -401,6 +402,45 @@ void XControlDeviceHandler::HandleHttpRequest( const IWebRequest& request, IWebR
     }
 
 }
+
+/* ================================================================= */
+/* Implementation of the XAccessHandler                              */
+/* ================================================================= */
+
+XAccessHandler::XAccessHandler( const std::string& uri, const XEmbeddedContent* m1):
+IWebRequestHandler( uri,false), successContent( m1 )
+{}
+
+XAccessHandler::~XAccessHandler()
+{    
+}
+
+void XAccessHandler::HandleHttpRequest( const IWebRequest& request, IWebResponse& response )
+{
+    std::cout<<"Login Parameters:"<<request.Body()<<std::endl;
+    std::string body = request.Body();
+    std::map<std::string,std::string> parameter_values = getParmeters(body, '&');
+    for(auto& element : parameter_values)
+        std::cout<<element.first<<":"<<element.second<<std::endl;
+
+    if(parameter_values["uname"] == "ishansheth" && parameter_values["psw"] == "signature123")
+    {
+        response.Printf( "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: %s\r\n"
+                        "Content-Length: %u\r\n"
+                        "\r\n", successContent->Type, successContent->Length );
+        //response.Send( successContent->Body, successContent->Length );
+    }
+    else
+    {
+        response.Printf( "HTTP/1.1 401 OK\r\n"
+                        "Content-Type: %s\r\n"
+                        "Content-Length: %u\r\n"
+                        "\r\n", failureContent->Type, failureContent->Length );
+        response.Send( failureContent->Body, failureContent->Length );
+    }
+}
+
 
 /* ================================================================= */
 /* Implementation of the XWebServer                                  */
